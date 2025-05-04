@@ -54,6 +54,8 @@ Press Enter when prompted to confirm the path. You’ll get two files:
 8. Test the connection:
     ```bash
     ssh -T git@github.com
+    or 
+    ssh -T -i ~/.ssh/ajmain git@github.com
     ```
 
 ---
