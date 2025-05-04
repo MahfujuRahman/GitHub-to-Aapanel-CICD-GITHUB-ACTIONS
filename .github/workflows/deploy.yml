@@ -20,6 +20,3 @@ jobs:
             cd ${{ secrets.PROJECT_PATH }}
             git config --global --add safe.directory ${{ secrets.PROJECT_PATH }}
             git pull origin main
-            npm install
-
-            echo "Succesfully pulled the latest code and installed dependencies."
