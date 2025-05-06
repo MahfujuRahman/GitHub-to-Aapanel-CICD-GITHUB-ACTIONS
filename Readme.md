@@ -1,30 +1,30 @@
-# 🚀 GitHub to VPS Deployment Guide using Aapanel + GitHub Actions
+# 🚀 GitHub to VPS Deployment Guide using Git + Aapanel + GitHub Actions
+
+## 📂 Login to Aapanel and Set Up Project Directory
+
+Log in to your Aapanel to manage your web server environment. Navigate to the project directory where you want to deploy your application.
 
 ---
 
-## ✅ Step 1: First Login to Aapanel
-Log in to your Aapanel to manage your web server environment.
+## ✅ Step 1: Install and Configure Git on VPS
 
----
-
-## 📂 Step 2: Create a Project Repository
-- Create a private or public repository on GitHub for your project (e.g., `cd`).
-- Make sure you have added your project files and pushed them to the `main` branch.
-
----
-
-## 🧰 Step 3: One-Time Setup (If Git Is Not Installed on VPS)
-
-Run the following command on your VPS:
-
+### Check if Git is Installed
+Run the following command on your VPS to check if Git is installed:
 ```bash
-apt install git -y
+git
+```
+
+### Install Git (If Not Installed)
+If Git is not installed, run:
+```bash
+sudo apt install git -y
 ```
 
 ---
 
-## 🔑 Step 4: Generate SSH Key on VPS
+## 🔑 Step 2: Generate SSH Key on VPS
 
+Generate an SSH key pair on your VPS:
 ```bash
 ssh-keygen -t rsa -b 4096 -C "your_email@example.com" -f ~/.ssh/ajmain
 ```
@@ -35,73 +35,130 @@ Press Enter when prompted to confirm the path. You’ll get two files:
 
 ---
 
-## 📋 Step 5: Copy & Register the SSH Public Key
+## 📋 Step 3: Copy & Register the SSH Public Key
 
-1. Display the public key:
-    ```bash
-    cat ~/.ssh/ajmain.pub
-    ```
-2. Append it to authorized keys:
-    ```bash
-    cat ~/.ssh/ajmain.pub >> ~/.ssh/authorized_keys
-    ```
+1. Append the public key to authorized keys:
+  ```bash
+  cat ~/.ssh/ajmain.pub >> ~/.ssh/authorized_keys
+  ```
+2. Display the public key:
+  ```bash
+  cat ~/.ssh/ajmain.pub
+  ```
 3. Go to **GitHub → Settings → SSH and GPG keys**
 4. Click **"New SSH Key"**
-5. **Title:** `VPS`
+5. **Title:** `VPS Public Key`
 6. **Paste** the copied key
 7. **Save**
+8. **Test the SSH Connection**
 
-8. Test the connection:
-    ```bash
-    ssh -T git@github.com
-    or 
-    ssh -T -i ~/.ssh/ajmain git@github.com
-    ```
+  - If your SSH key is named `id_rsa`, run:
+  ```bash
+  ssh -T git@github.com
+  ```
+
+  - If you have multiple SSH keys, specify the key explicitly:
+  ```bash
+  ssh -T -i ~/.ssh/ajmain git@github.com
+  ```
+
+  A successful connection will display a message like:
+  ```
+  Hi username! You've successfully authenticated, but GitHub does not provide shell access.
+  ```
 
 ---
 
-## 🌐 Step 6: Clone Repository to Aapanel Project Directory
+## 🌐 Step 4: Clone Repository to VPS
 
+### For Single User Repositories:
 ```bash
 cd /www/wwwroot/test.mirpurianscafe.com
 git clone git@github.com:MahfujuRahman/cd.git .
 ```
 
+### For Multiple User Repositories:
+
+#### One-Time Setup: Configure SSH for Multiple Keys
+If you have multiple GitHub accounts or SSH keys, configure SSH to use the correct key for each repository. Edit or create the SSH config file:
+
+```bash
+nano ~/.ssh/config
+```
+
+Add the following configuration:
+
+```ssh
+Host github.com-ajmain
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/ajmain
+```
+
+#### Clone the Repository Using the Alias:
+```bash
+cd /www/wwwroot/test.mirpurianscafe.com
+git clone git@github.com-ajmain:MahfujuRahman/Superb-Backend.git .
+```
+
+#### Test the SSH Connection:
+```bash
+ssh -T git@github.com-ajmain
+```
+A successful connection will display a message like:
+```
+Hi username! You've successfully authenticated, but GitHub does not provide shell access.
+```
+
+### 🛡️ Step 4.1: Configure Git Safe Directory
+
+After cloning the repository, you might need to mark the project directory as a safe directory to avoid Git warnings. Use the following commands:
+
+```bash
+git config --global --add safe.directory /www/wwwroot/your-project-path
+```
+
+Replace `/www/wwwroot/your-project-path` with the actual path to your project directory on the VPS.
+
+This step ensures that Git operations can be performed securely within the specified directories.
+
 ---
 
-## 🛠️ Step 7: Add GitHub Actions Workflow File
+## 🛠️ Step 5: Add GitHub Actions Workflow File
 
 In your project folder, create the file:
 
 `.github/workflows/deploy.yml`
 
 ```yaml
-name: Blood Management
+name: CICD TEST
 
 on:
   push:
-    branches: [main]
+  branches: [main]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Deploy using ssh
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
-            cd ${{ secrets.PROJECT_PATH }}
-            git pull origin main
+  steps:
+    - name: Deploy using ssh
+    uses: appleboy/ssh-action@master
+    with:
+      host: ${{ secrets.VPS_HOST }}
+      username: ${{ secrets.VPS_USER }}
+      key: ${{ secrets.SSH_PRIVATE_KEY }}
+      port: 22
+      script: |
+      cd ${{ secrets.PROJECT_PATH }}
+      git reset --hard HEAD
+      git clean -fd
+      git pull origin master --prune --force || true
 ```
 
 ---
 
-## 🔐 Step 8: Add GitHub Secrets
+## 🔐 Step 6: Add GitHub Secrets
 
 Go to your GitHub repository → **Settings → Secrets and variables → Actions**  
 Click **"New repository secret"** for each of the following:
